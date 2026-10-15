@@ -1,0 +1,8 @@
+{
+  "appId": "com.futurehouser.familywinner",
+  "appName": "FamilyWinner",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  }
+}

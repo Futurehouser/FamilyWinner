@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.github.com; script-src 'self'">
+  <title>FamilyWinner</title>
+  <link rel="icon" href="icon.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="icon.png" alt="" class="brand-icon">
+      <span class="brand-name">FamilyWinner</span>
+      <span class="brand-version" id="version"></span>
+    </div>
+    <div class="top-actions">
+      <button class="btn ghost" id="btn-undo" title="Deshacer la última acción">↶<span class="lbl"> Deshacer</span></button>
+      <button class="btn ghost" id="btn-new" title="Empezar otra partida">＋<span class="lbl"> Nueva</span></button>
+      <button class="btn ghost" id="btn-update" title="Buscar actualizaciones">⟳</button>
+    </div>
+  </header>
+
+  <!-- Pantalla de inicio: elegir mano -->
+  <main id="setup" class="screen hidden">
+    <section class="panel">
+      <h1>¿Qué mano te ha tocado?</h1>
+      <p class="muted">Toca tus <b>6 cartas</b>. Seleccionadas: <b id="setup-count">0</b>/6</p>
+      <div class="starter">
+        <span>Empieza:</span>
+        <label><input type="radio" name="starter" value="me" checked> Yo</label>
+        <label><input type="radio" name="starter" value="opp"> El rival</label>
+      </div>
+      <div id="setup-grid"></div>
+      <div class="sticky-bottom">
+        <button class="btn primary big" id="btn-start" disabled>Empezar partida</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Pantalla de juego -->
+  <main id="game" class="screen hidden">
+    <div class="status" id="status"></div>
+    <div id="alerts"></div>
+
+    <div class="layout">
+      <div class="col">
+        <section class="panel" id="panel-turn"></section>
+        <section class="panel">
+          <h2>Tu mano <span class="muted" id="hand-count"></span></h2>
+          <div id="hand"></div>
+        </section>
+      </div>
+      <div class="col">
+        <section class="panel">
+          <h2>Lo que sabes del rival</h2>
+          <div id="opp-info"></div>
+        </section>
+        <section class="panel">
+          <h2>Familias completadas</h2>
+          <div id="completed"></div>
+        </section>
+        <section class="panel">
+          <h2>Registro</h2>
+          <ol id="log" class="log"></ol>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2 id="modal-title"></h2>
+        <button class="btn ghost" id="modal-close" aria-label="Cerrar">✕</button>
+      </div>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="js/version.js"></script>
+  <script src="js/logic.js"></script>
+  <script src="js/updater.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
