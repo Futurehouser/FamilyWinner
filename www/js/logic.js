@@ -34,7 +34,9 @@
       oppFamEvidence: {}, // familia -> true si el rival pidió de esa familia (debe tener alguna)
       completed: {},      // familia -> 'me' | 'opp'
       turn: starter === 'opp' ? 'opp' : 'me',
-      pendingDraw: false, // he fallado y tengo que indicar qué carta robo
+      pendingDraw: false, // tengo que indicar qué carta robo
+      pendingDrawReason: null, // 'miss' (he fallado) | 'empty' (me he quedado sin cartas)
+      winner: null,       // primer jugador en llegar a 4 familias ('me' | 'opp')
       log: [],
       alerts: []
     };
@@ -143,7 +145,23 @@
         res.notes.push('¡Familia ' + FAMILY_NAMES[f] + ' completada!');
       }
     });
+    checkWinner(res);
     checkEnd(s);
+  }
+  // Con 4 de las 7 familias la partida ya está ganada (aunque se puede seguir jugando)
+  const WIN_FAMILIES = 4;
+  function checkWinner(res) {
+    const s = res.state;
+    if (s.winner) return;
+    ['me', 'opp'].forEach(who => {
+      if (s.winner) return;
+      const n = Object.values(s.completed).filter(v => v === who).length;
+      if (n >= WIN_FAMILIES) {
+        s.winner = who;
+        res.winner = who;
+        addLog(s, who === 'me' ? '🏆 ¡Tienes ' + n + ' familias: has ganado la partida!' : '🏆 El rival tiene ' + n + ' familias: ha ganado la partida.', who === 'me' ? 'good' : 'bad');
+      }
+    });
   }
   function checkEnd(s) {
     if (completedCount(s) === FAMILIES.length) {
@@ -172,6 +190,13 @@
       addLog(s, 'Pides ' + cardName(card) + ' → el rival te la da. Repites turno.', 'good');
       s.turn = 'me';
       checkMyCompleted(res);
+      // Si le he quitado su última carta, el rival roba una automáticamente
+      if (s.phase === 'play' && s.oppCount === 0 && deckCount(s) > 0) {
+        s.oppCount = 1;
+        knownNot(s).forEach(c => delete s.opp[c]);
+        res.oppAutoDraw = true;
+        addLog(s, 'El rival se ha quedado sin cartas y roba una de la baraja.', 'info');
+      }
     } else {
       if (s.opp[card] === 'has') {
         cheat(res, 'El rival dice que no tiene ' + cardName(card) + ', pero se la diste tú y no la ha devuelto.');
@@ -186,6 +211,7 @@
       checkConsistency(res);
       if (deckCount(s) > 0) {
         s.pendingDraw = true;
+        s.pendingDrawReason = 'miss';
       } else {
         addLog(s, 'La baraja está vacía: no robas. Turno del rival.', 'info');
         s.turn = 'opp';
@@ -204,6 +230,7 @@
     delete s.opp[card];
     const wasPending = s.pendingDraw;
     s.pendingDraw = false;
+    s.pendingDrawReason = null;
     addLog(s, 'Robas ' + cardName(card) + ' de la baraja.', 'info');
     if (wasPending) s.turn = 'opp';
     checkMyCompleted(res);
@@ -241,6 +268,13 @@
       s.oppFamEvidence[f] = true;
       addLog(s, 'El rival te pide ' + cardName(card) + ' → la tienes y se la das. Repite turno.', 'bad');
       s.turn = 'opp';
+      // Si era mi última carta, tengo que robar una automáticamente
+      if (s.myHand.length === 0 && deckCount(s) > 0) {
+        s.pendingDraw = true;
+        s.pendingDrawReason = 'empty';
+        res.mustDraw = true;
+        addLog(s, 'Te has quedado sin cartas: robas una de la baraja.', 'info');
+      }
     } else {
       s.oppFamEvidence[f] = true;
       if (s.opp[card] !== 'has') delete s.opp[card];
@@ -283,6 +317,7 @@
     famCards(f).forEach(c => delete s.opp[c]);
     delete s.oppFamEvidence[f];
     addLog(s, 'El rival completa la familia ' + FAMILY_NAMES[f] + '.', 'bad');
+    checkWinner(res);
     checkEnd(s);
     return res;
   }

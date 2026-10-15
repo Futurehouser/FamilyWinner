@@ -141,6 +141,40 @@
     openModal('¡Cuidado!', body, { onClose: then });
   }
 
+  // Ejecuta pasos de UI uno detrás de otro (cada paso llama a next al terminar)
+  function runSteps(steps) {
+    const next = () => { const f = steps.shift(); if (f) f(next); };
+    next();
+  }
+  function infoModal(title, icon, text, next) {
+    const body = el('div', { class: 'center' },
+      el('div', { style: 'font-size:3rem;line-height:1' }, icon),
+      el('p', { class: 'question' }, text),
+      el('button', { class: 'btn primary big', onclick: () => closeModal() }, 'Aceptar'));
+    openModal(title, body, { onClose: next });
+  }
+  function winnerModal(who, next) {
+    const mine = who === 'me';
+    infoModal(mine ? '¡Has ganado!' : 'Ha ganado el rival', '🏆',
+      (mine ? '¡Enhorabuena! Has conseguido 4 familias y has ganado la partida.'
+            : 'El rival ha conseguido 4 familias y ha ganado la partida.') +
+      ' Puedes seguir jugando hasta completar todas las familias.', next);
+  }
+  // Pasos comunes tras una acción: trampas, avisos, robo automático del rival, ganador y robo pendiente
+  function afterAction(res, extra) {
+    const steps = [
+      next => showCheats(res.alerts, next),
+      next => { res.notes.forEach(toast); next(); }
+    ].concat(extra || []);
+    if (res.oppAutoDraw) steps.push(next => infoModal('El rival se queda sin cartas', '🃏',
+      'Le has quitado su última carta al rival, así que roba una carta de la baraja automáticamente.', next));
+    if (res.winner) steps.push(next => winnerModal(res.winner, next));
+    if (res.mustDraw) steps.push(next => infoModal('Te has quedado sin cartas', '🃏',
+      'El rival se ha llevado tu última carta. Roba una carta de la baraja y dime cuál es.', next));
+    steps.push(() => { if (state.pendingDraw) flowMyDraw(state.pendingDrawReason); });
+    runSteps(steps);
+  }
+
   // ---------- flujos de juego ----------
   function flowMyAsk(card) {
     const body = el('div', { class: 'center' },
@@ -156,18 +190,19 @@
     closeModal();
     const res = apply(s => L.myAsk(s, card, had));
     if (!res) return;
-    showCheats(res.alerts, () => {
-      res.notes.forEach(toast);
-      if (state.pendingDraw) flowMyDraw(true);
-    });
+    afterAction(res);
   }
 
-  function flowMyDraw(afterMiss) {
+  function flowMyDraw(reason) {
+    const intros = {
+      miss: 'El rival no tenía la carta. Roba de la baraja y dime cuál te ha salido.',
+      empty: 'Te has quedado sin cartas. Roba de la baraja y dime cuál te ha salido.'
+    };
     pickCard('¿Qué carta has robado?', L.drawCandidates(state), {
-      intro: afterMiss ? 'El rival no tenía la carta. Roba de la baraja y dime cuál te ha salido.' : 'Indica la carta que has robado de la baraja.',
+      intro: intros[reason] || 'Indica la carta que has robado de la baraja.',
       onPick: c => {
         const res = apply(s => L.myDraw(s, c));
-        if (res) showCheats(res.alerts, () => res.notes.forEach(toast));
+        if (res) afterAction(res);
       }
     });
   }
@@ -195,7 +230,8 @@
                   ? 'Dile que no la tienes. El rival roba de la baraja y te toca a ti.'
                   : 'Dile que no la tienes (la baraja está vacía). Te toca a ti.')),
           el('button', { class: 'btn primary big', onclick: () => closeModal() }, 'Continuar'));
-        openModal(res.alerts.length ? '🚨 ¡Trampa detectada!' : (res.gave ? 'El rival acierta' : 'El rival falla'), body);
+        openModal(res.alerts.length ? '🚨 ¡Trampa detectada!' : (res.gave ? 'El rival acierta' : 'El rival falla'), body,
+          { onClose: () => afterAction(Object.assign({}, res, { alerts: [] })) });
       }
     });
   }
@@ -208,7 +244,7 @@
         class: 'btn', onclick: () => {
           closeModal();
           const res = apply(s => L.oppComplete(s, f));
-          if (res) showCheats(res.alerts);
+          if (res) afterAction(res);
         }
       }, L.FAMILY_NAMES[f]))));
     openModal('El rival baja una familia', body);
@@ -216,7 +252,7 @@
 
   function flowMore() {
     const body = el('div', { class: 'btn-row', style: 'flex-direction:column' },
-      el('button', { class: 'btn', onclick: () => { closeModal(); flowMyDraw(false); } }, 'He robado una carta sin pedir'),
+      el('button', { class: 'btn', onclick: () => { closeModal(); flowMyDraw(null); } }, 'He robado una carta sin pedir'),
       el('button', { class: 'btn', onclick: () => { closeModal(); apply(s => L.oppDraw(s)); } }, 'El rival roba una carta sin pedir'),
       el('button', { class: 'btn', onclick: () => { closeModal(); flowOppComplete(); } }, 'El rival baja una familia completa'),
       el('button', { class: 'btn', onclick: () => { closeModal(); flowSetOpp(); } }, 'Corregir nº de cartas del rival'),
@@ -274,7 +310,7 @@
     $('status').append(
       el('span', { class: 'chip' + (s.turn === 'me' && s.phase === 'play' ? ' turn-me' : '') }, 'Turno: ', el('b', null, s.phase === 'end' ? '—' : (s.turn === 'me' ? 'Tú' : 'Rival'))),
       el('span', { class: 'chip' }, 'Baraja: ', el('b', null, String(L.deckCount(s)))),
-      el('span', { class: 'chip' }, 'Rival: ', el('b', null, s.oppCount + ' cartas')),
+      el('span', { class: 'chip' }, 'Rival: ', el('b', null, s.oppCount + (s.oppCount === 1 ? ' carta' : ' cartas'))),
       el('span', { class: 'chip' }, 'Familias: ', el('b', null, 'Tú ' + mineDone + ' – ' + oppDone + ' Rival'))
     );
 
@@ -346,18 +382,19 @@
     }
 
     if (s.pendingDraw) {
-      p.append(el('div', { class: 'turn-banner' }, 'Has fallado: roba una carta'),
-        el('button', { class: 'btn primary big', onclick: () => flowMyDraw(true) }, '¿Qué carta has robado?'));
+      p.append(el('div', { class: 'turn-banner' }, s.pendingDrawReason === 'empty' ? 'Te has quedado sin cartas: roba una' : 'Has fallado: roba una carta'),
+        el('button', { class: 'btn primary big', onclick: () => flowMyDraw(s.pendingDrawReason) }, '¿Qué carta has robado?'));
       return;
     }
 
     const sug = L.suggestions(s);
     const myTurn = s.turn === 'me';
+    if (s.winner) p.append(el('div', { class: 'hint' }, s.winner === 'me' ? '🏆 Has ganado la partida (4 familias). Puedes seguir jugando hasta el final.' : '🏆 El rival ha ganado la partida (4 familias). Puedes seguir jugando hasta el final.'));
     p.append(el('div', { class: 'turn-banner' }, myTurn ? '👉 Tu turno: pide una carta' : '⏳ Turno del rival'));
 
     if (!s.myHand.length) {
       p.append(el('p', { class: 'hint' }, 'No tienes cartas. Si las reglas lo permiten, roba de la baraja.'),
-        el('button', { class: 'btn primary', onclick: () => flowMyDraw(false) }, 'He robado una carta'));
+        el('button', { class: 'btn primary', onclick: () => flowMyDraw(null) }, 'He robado una carta'));
     } else if (sug.length) {
       const top = sug.slice(0, 4);
       p.append(el('div', { class: 'subtitle' }, myTurn ? 'Te sugiero pedir:' : 'Cuando te toque, te sugiero pedir:'),

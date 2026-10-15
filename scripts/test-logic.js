@@ -61,4 +61,43 @@ const HAND = ['bantu_abuelo', 'bantu_abuela', 'bantu_padre', 'bantu_madre', 'ban
   assert.throws(() => L.oppComplete(s, 'chino')); // tengo chino_hijo
 }
 
+// 6. Le quito la última carta al rival → roba automáticamente
+{
+  let s = L.newGame(HAND, 'me');
+  s = L.setOppCount(s, 1).state;
+  const r = L.myAsk(s, 'chino_padre', true);
+  assert.ok(r.oppAutoDraw);
+  assert.strictEqual(r.state.oppCount, 1);
+  assert.strictEqual(r.state.turn, 'me');
+}
+
+// 7. El rival se lleva mi última carta → tengo que robar y él repite turno
+{
+  let s = L.newGame(HAND, 'opp');
+  for (const c of HAND.slice(1)) s = L.oppAsk(s, c).state;
+  const r = L.oppAsk(s, HAND[0]);
+  assert.ok(r.mustDraw);
+  assert.ok(r.state.pendingDraw);
+  assert.strictEqual(r.state.pendingDrawReason, 'empty');
+  const d = L.myDraw(r.state, 'indio_hijo').state;
+  assert.strictEqual(d.myHand.length, 1);
+  assert.strictEqual(d.turn, 'opp');
+}
+
+// 8. Ganador al llegar a 4 familias (se anuncia una sola vez y la partida sigue)
+{
+  let s = L.newGame(['bantu_abuelo', 'arabe_padre', 'arabe_madre', 'indio_hijo', 'indio_hija', 'esquimal_hijo'], 'opp');
+  let r;
+  for (const f of ['chino', 'mexicano', 'tiroles']) {
+    s = L.setOppCount(s, s.oppCount + 6).state;
+    r = L.oppComplete(s, f); s = r.state;
+    assert.ok(!r.winner);
+  }
+  r = L.oppAsk(s, 'esquimal_hijo'); s = L.setOppCount(r.state, 6).state;
+  r = L.oppComplete(s, 'esquimal');
+  assert.strictEqual(r.winner, 'opp');
+  assert.strictEqual(r.state.winner, 'opp');
+  assert.strictEqual(r.state.phase, 'play');
+}
+
 console.log('Todos los tests de lógica han pasado ✔');
