@@ -100,4 +100,26 @@ const HAND = ['bantu_abuelo', 'bantu_abuela', 'bantu_padre', 'bantu_madre', 'ban
   assert.strictEqual(r.state.phase, 'play');
 }
 
+// 9. El rival falla: pierde el turno y roba solo (sin indicarlo a mano)
+{
+  let s = L.newGame(HAND, 'opp');
+  const r = L.oppAsk(s, 'indio_hijo');
+  assert.ok(!r.gave);
+  assert.ok(r.oppDrew);
+  assert.strictEqual(r.state.oppCount, 7);
+  assert.strictEqual(L.deckCount(r.state), 29);
+  assert.strictEqual(r.state.turn, 'me');
+}
+
+// 10. Con la baraja vacía el rival falla pero no roba
+{
+  let s = L.newGame(HAND, 'opp');
+  s = L.setOppCount(s, 36).state; // 6 mías + 36 del rival = baraja vacía
+  assert.strictEqual(L.deckCount(s), 0);
+  const r = L.oppAsk(s, 'indio_hijo');
+  assert.ok(!r.oppDrew);
+  assert.strictEqual(r.state.oppCount, 36);
+  assert.strictEqual(r.state.turn, 'me');
+}
+
 console.log('Todos los tests de lógica han pasado ✔');

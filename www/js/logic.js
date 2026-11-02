@@ -278,12 +278,15 @@
     } else {
       s.oppFamEvidence[f] = true;
       if (s.opp[card] !== 'has') delete s.opp[card];
-      addLog(s, 'El rival te pide ' + cardName(card) + ' → no la tienes. El rival roba.', 'good');
-      if (deckCount(s) > 0) {
+      // El rival falla: pierde el turno y roba automáticamente (si quedan cartas en la baraja)
+      res.oppDrew = deckCount(s) > 0;
+      if (res.oppDrew) {
         s.oppCount += 1;
         // ha robado una carta desconocida: lo que negó tener puede haberlo robado ahora
         knownNot(s).forEach(c => delete s.opp[c]);
       }
+      addLog(s, 'El rival te pide ' + cardName(card) + ' → no la tienes. Pierde el turno' +
+        (res.oppDrew ? ' y roba una carta de la baraja.' : ' (la baraja está vacía, no roba).'), 'good');
       s.turn = 'me';
     }
     checkConsistency(res);

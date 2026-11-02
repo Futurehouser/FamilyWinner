@@ -226,9 +226,9 @@
                   : 'Dásela al rival. Vuelve a pedir él.'))
             : el('div', null,
                 el('div', { class: 'result-good' }, 'Falla: no tienes esa carta'),
-                el('p', null, L.deckCount(res.state) < L.deckCount(history[history.length - 1])
-                  ? 'Dile que no la tienes. El rival roba de la baraja y te toca a ti.'
-                  : 'Dile que no la tienes (la baraja está vacía). Te toca a ti.')),
+                el('p', null, res.oppDrew
+                  ? 'Dile que no la tienes. El rival pierde el turno y roba una carta de la baraja: ya está contado automáticamente (ahora tiene ' + res.state.oppCount + (res.state.oppCount === 1 ? ' carta' : ' cartas') + '). Te toca a ti.'
+                  : 'Dile que no la tienes. El rival pierde el turno y, como la baraja está vacía, no roba. Te toca a ti.')),
           el('button', { class: 'btn primary big', onclick: () => closeModal() }, 'Continuar'));
         openModal(res.alerts.length ? '🚨 ¡Trampa detectada!' : (res.gave ? 'El rival acierta' : 'El rival falla'), body,
           { onClose: () => afterAction(Object.assign({}, res, { alerts: [] })) });
@@ -253,7 +253,7 @@
   function flowMore() {
     const body = el('div', { class: 'btn-row', style: 'flex-direction:column' },
       el('button', { class: 'btn', onclick: () => { closeModal(); flowMyDraw(null); } }, 'He robado una carta sin pedir'),
-      el('button', { class: 'btn', onclick: () => { closeModal(); apply(s => L.oppDraw(s)); } }, 'El rival roba una carta sin pedir'),
+      el('button', { class: 'btn', onclick: () => { closeModal(); apply(s => L.oppDraw(s)); } }, 'El rival roba una carta extra (fuera de las reglas normales)'),
       el('button', { class: 'btn', onclick: () => { closeModal(); flowOppComplete(); } }, 'El rival baja una familia completa'),
       el('button', { class: 'btn', onclick: () => { closeModal(); flowSetOpp(); } }, 'Corregir nº de cartas del rival'),
       el('button', { class: 'btn', onclick: () => { closeModal(); apply(s => { const r = { state: JSON.parse(JSON.stringify(s)), alerts: [], notes: [] }; r.state.turn = s.turn === 'me' ? 'opp' : 'me'; return r; }); } }, 'Cambiar de quién es el turno'));
