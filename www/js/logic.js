@@ -143,6 +143,7 @@
         delete s.oppFamEvidence[f];
         addLog(s, '🎉 ¡Has completado la familia ' + FAMILY_NAMES[f] + '!', 'good');
         res.notes.push('¡Familia ' + FAMILY_NAMES[f] + ' completada!');
+        (res.myCompleted = res.myCompleted || []).push(f);
       }
     });
     checkWinner(res);
@@ -316,6 +317,7 @@
     if (denied.length) cheat(res, 'El rival baja la familia ' + FAMILY_NAMES[f] + ', pero te dijo que no tenía ' + denied.map(cardName).join(', ') + ' y no ha robado desde entonces.');
     if (s.oppCount < MEMBERS.length) cheat(res, 'El rival baja la familia ' + FAMILY_NAMES[f] + ' con solo ' + s.oppCount + ' cartas en la mano.');
     s.completed[f] = 'opp';
+    res.oppCompleted = f;
     s.oppCount = Math.max(0, s.oppCount - MEMBERS.length);
     famCards(f).forEach(c => delete s.opp[c]);
     delete s.oppFamEvidence[f];

@@ -162,6 +162,10 @@
   }
   // Pasos comunes tras una acción: trampas, avisos, robo automático del rival, ganador y robo pendiente
   function afterAction(res, extra) {
+    if (window.FWSounds) {
+      if (res.myCompleted && res.myCompleted.length) FWSounds.victory();
+      else if (res.oppCompleted) FWSounds.failure();
+    }
     const steps = [
       next => showCheats(res.alerts, next),
       next => { res.notes.forEach(toast); next(); }
@@ -462,6 +466,16 @@
   });
   $('btn-new').addEventListener('click', newGameConfirm);
   $('btn-update').addEventListener('click', () => window.FWUpdater && window.FWUpdater.check(true));
+  const soundBtn = $('btn-sound');
+  const paintSound = () => { soundBtn.textContent = FWSounds.isMuted() ? '🔇' : '🔊'; };
+  soundBtn.addEventListener('click', () => {
+    FWSounds.setMuted(!FWSounds.isMuted());
+    paintSound();
+    toast(FWSounds.isMuted() ? 'Sonidos silenciados' : 'Sonidos activados');
+  });
+  paintSound();
+  // Android/Chrome solo permiten audio tras una interacción: se desbloquea con el primer toque
+  document.addEventListener('pointerdown', () => FWSounds.unlock(), { once: true });
   $('modal-close').addEventListener('click', closeModal);
   $('modal').addEventListener('click', e => { if (e.target.id === 'modal' && !$('modal-close').classList.contains('hidden')) closeModal(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('modal').classList.contains('hidden') && !$('modal-close').classList.contains('hidden')) closeModal(); });

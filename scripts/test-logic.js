@@ -122,4 +122,18 @@ const HAND = ['bantu_abuelo', 'bantu_abuela', 'bantu_padre', 'bantu_madre', 'ban
   assert.strictEqual(r.state.turn, 'me');
 }
 
+// 11. Avisos para los sonidos: familia completada por mí (pidiendo o robando) o por el rival
+{
+  let s = L.newGame(HAND, 'me');
+  let r = L.myAsk(s, 'bantu_hija', true);
+  assert.deepStrictEqual(r.myCompleted, ['bantu']);
+  r = L.myAsk(s, 'bantu_hija', false);
+  assert.ok(!r.myCompleted);
+  r = L.myDraw(r.state, 'bantu_hija');
+  assert.deepStrictEqual(r.myCompleted, ['bantu']);
+  r = L.oppComplete(s, 'indio');
+  assert.strictEqual(r.oppCompleted, 'indio');
+  assert.ok(!r.myCompleted);
+}
+
 console.log('Todos los tests de lógica han pasado ✔');

@@ -1,7 +1,7 @@
 {
   "name": "familywinner",
   "productName": "FamilyWinner",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Asistente para el juego de las familias: sugiere qué carta pedir y detecta trampas.",
   "author": "Futurehouser",
   "license": "MIT",
